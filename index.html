@@ -12,12 +12,10 @@
         
         body { background-color: var(--bg-main); background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); background-size: 20px 20px; color: var(--text-secondary); font-family: 'VT323', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; min-height: 100dvh; margin: 0; overflow-x: hidden; transition: all 0.5s steps(4); }
 
-        /* 移动端基础适配 */
         @media (max-width: 768px) {
             body { justify-content: flex-start; height: auto; padding-top: 80px; padding-bottom: 40px; box-sizing: border-box; overflow-y: auto; }
         }
 
-        /* 横屏缩放核心逻辑 */
         @media (max-height: 500px) and (orientation: landscape) {
             body { padding-top: 20px; justify-content: flex-start; }
             .player-card { transform: scale(0.65); transform-origin: top center; margin-bottom: -120px; }
@@ -102,7 +100,11 @@
 
     let totalSeconds = 0, todaySeconds = 0, historyData = {}, isDayMode = localStorage.getItem('px_mode') !== 'night', isRunning = false, timerInterval;
     let focusKeyword = localStorage.getItem('focus_keyword') || "study with me";
-    let lastQuoteText = "", isFlipping = false, sessionSeconds = 0; 
+    let lastQuoteText = "", isFlipping = false;
+    
+    let startTime = null;
+    let baseTodaySeconds = 0;
+    let baseTotalSeconds = 0;
 
     const getTodayKey = () => new Date().toISOString().split('T')[0];
 
@@ -185,45 +187,51 @@
         return `${h.toString().padStart(4,'0')}:${m.toString().padStart(2,'0')}:${sc.toString().padStart(2,'0')}`;
     }
 
-    function editTotal() { let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){totalSeconds=parseFloat(v)*3600; updateUI();} }
-    function editToday() { let v=prompt("Today Hours:", (todaySeconds/3600).toFixed(2)); if(v){todaySeconds=parseFloat(v)*3600; updateUI();} }
-
     const setupEdit = (id, fn) => {
         const el = document.getElementById(id);
         el.addEventListener('click', (e) => { if(window.innerWidth > 932) fn(); });
         el.addEventListener('dblclick', (e) => { if(window.innerWidth <= 932) fn(); });
     };
-    setupEdit('box-total', editTotal);
-    setupEdit('box-today', editToday);
+    setupEdit('box-total', () => { let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){totalSeconds=parseFloat(v)*3600; updateUI();} });
+    setupEdit('box-today', () => { let v=prompt("Today Hours:", (todaySeconds/3600).toFixed(2)); if(v){todaySeconds=parseFloat(v)*3600; updateUI();} });
 
     document.getElementById('start-btn').onclick = () => { 
         if(!isRunning){ 
-            isRunning=true; 
-            sessionSeconds = 0; 
-            timerInterval=setInterval(()=>{
-                totalSeconds++; todaySeconds++; sessionSeconds++; 
+            isRunning = true; 
+            startTime = Date.now();
+            baseTodaySeconds = todaySeconds;
+            baseTotalSeconds = totalSeconds;
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                todaySeconds = baseTodaySeconds + elapsed;
+                totalSeconds = baseTotalSeconds + elapsed;
                 updateUI(false);
-            },1000); 
+            }, 1000); 
         }
     };
 
     document.getElementById('pause-btn').onclick = () => { 
         if(isRunning){
-            isRunning=false; 
+            isRunning = false; 
             clearInterval(timerInterval);
-            let level = 0;
-            if (sessionSeconds >= 7200) level = 4;
-            else if (sessionSeconds >= 3600) level = 3;
-            else if (sessionSeconds >= 2100) level = 2;
-            else if (sessionSeconds >= 900) level = 1;
+            
+            // 物理结算
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            todaySeconds = baseTodaySeconds + elapsed;
+            totalSeconds = baseTotalSeconds + elapsed;
+
+            // 烟花分级：基于 Today's Record (今日累计时间)
+            // 每 15 分钟 (900秒) 一个等级
+            let level = Math.floor(todaySeconds / 900);
+            if (level > 4) level = 4; // 最高4级
 
             if (level > 0) launchCelebration(window.innerWidth/2, window.innerHeight/2, level);
-            sessionSeconds = 0; 
+            
             syncToCloud(); 
         }
     };
 
-    document.getElementById('reset-btn').onclick = () => { if(confirm("Reset?")){ totalSeconds=0; todaySeconds=0; sessionSeconds=0; updateUI(); }};
+    document.getElementById('reset-btn').onclick = () => { if(confirm("Reset?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
     document.getElementById('celestial-body').onclick = () => { isDayMode=!isDayMode; renderTheme(); };
 
     async function syncToCloud() { await _supabase.from('records').upsert({ id: 1, data: { totalSeconds, todaySeconds, historyData }}); }
@@ -275,10 +283,10 @@
         const colors = isDayMode ? ['#228b22', '#ff4500', '#ffd700', '#1e90ff'] : ['#33ff33', '#ffffff', '#ffeb3b', '#ff4081']; 
         let count, speed, waves, scatter;
         switch(level) {
-            case 1: count=50; speed=8; waves=1; scatter=80; break;
-            case 2: count=100; speed=12; waves=2; scatter=150; break;
-            case 3: count=150; speed=18; waves=3; scatter=250; break;
-            case 4: count=250; speed=25; waves=5; scatter=500; break;
+            case 1: count=50; speed=8; waves=1; scatter=80; break;   // 15min
+            case 2: count=120; speed=14; waves=2; scatter=150; break; // 30min
+            case 3: count=180; speed=20; waves=3; scatter=250; break; // 45min
+            case 4: count=300; speed=28; waves=5; scatter=500; break; // 60min+
         }
         for(let j=0; j<waves; j++) {
             setTimeout(() => {
