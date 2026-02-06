@@ -10,10 +10,31 @@
         :root { --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d; --text-primary: #33ff33; --text-secondary: #e0e0e0; --bar-empty: #222; --border-color: #000; --accent-red: #ff0000; --btn-hover-bg: #33ff33; --btn-hover-text: #000; }
         .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #cc0000; --btn-hover-bg: #228b22; --btn-hover-text: #fff; }
         
-        body { background-color: var(--bg-main); background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); background-size: 20px 20px; color: var(--text-secondary); font-family: 'VT323', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; transition: all 0.5s steps(4); }
+        body { 
+            background-color: var(--bg-main); 
+            background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); 
+            background-size: 20px 20px; 
+            color: var(--text-secondary); 
+            font-family: 'VT323', monospace; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh;
+            min-height: 100dvh; /* 适配移动端地址栏 */
+            margin: 0; 
+            overflow-x: hidden; 
+            transition: all 0.5s steps(4); 
+        }
 
-        @media (max-width: 768px) {
-            body { justify-content: flex-start; height: auto; min-height: 100dvh; padding-top: 100px; padding-bottom: 40px; box-sizing: border-box; overflow-y: auto; }
+        /* 移动端适配：横屏或竖屏下允许滚动，防止地址栏遮挡 */
+        @media (max-width: 932px) { 
+            body { 
+                justify-content: flex-start; 
+                padding: 40px 0; 
+                overflow-y: auto; 
+                -webkit-overflow-scrolling: touch; 
+            }
         }
 
         #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
@@ -32,10 +53,6 @@
         @media (hover: hover) {
             .time-box:hover .edit-trigger { opacity: 1; }
             button:hover { background: var(--btn-hover-bg) !important; color: var(--btn-hover-text) !important; }
-        }
-
-        @media (max-width: 768px) {
-            .edit-trigger { display: none !important; }
         }
 
         .time-display { font-size: 3.2rem; color: var(--text-primary); text-shadow: 2px 2px 0px var(--border-color); line-height: 1; letter-spacing: 1px; pointer-events: none; }
@@ -182,8 +199,8 @@
 
     const setupEdit = (id, fn) => {
         const el = document.getElementById(id);
-        el.addEventListener('click', (e) => { if(window.innerWidth > 768) fn(); });
-        el.addEventListener('dblclick', (e) => { if(window.innerWidth <= 768) fn(); });
+        el.addEventListener('click', (e) => { if(window.innerWidth > 932) fn(); });
+        el.addEventListener('dblclick', (e) => { if(window.innerWidth <= 932) fn(); });
     };
     setupEdit('box-total', editTotal);
     setupEdit('box-today', editToday);
@@ -204,9 +221,8 @@
             isRunning=false; 
             clearInterval(timerInterval);
             
-            // 烟花分级算法 (秒数)
             let level = 0;
-            if (sessionSeconds >= 7200) level = 4; // > 120min
+            if (sessionSeconds >= 7200) level = 4;      // > 120min
             else if (sessionSeconds >= 3600) level = 3; // > 60min
             else if (sessionSeconds >= 2100) level = 2; // > 35min
             else if (sessionSeconds >= 900) level = 1;  // > 15min
@@ -268,16 +284,13 @@
     
     function launchCelebration(x, y, level = 1) { 
         const colors = isDayMode ? ['#228b22', '#ff4500', '#ffd700', '#1e90ff'] : ['#33ff33', '#ffffff', '#ffeb3b', '#ff4081']; 
-        
         let count, speed, waves, scatter;
-        
         switch(level) {
-            case 1: count=50; speed=8; waves=1; scatter=80; break;      // 15-35: 小型
-            case 2: count=100; speed=12; waves=2; scatter=150; break;   // 35-60: 中型
-            case 3: count=150; speed=18; waves=3; scatter=250; break;   // 60-120: 大型
-            case 4: count=250; speed=25; waves=5; scatter=500; break;   // >120: 全屏霸屏
+            case 1: count=50; speed=8; waves=1; scatter=80; break;
+            case 2: count=100; speed=12; waves=2; scatter=150; break;
+            case 3: count=150; speed=18; waves=3; scatter=250; break;
+            case 4: count=250; speed=25; waves=5; scatter=500; break;
         }
-
         for(let j=0; j<waves; j++) {
             setTimeout(() => {
                 for(let i=0; i<count; i++) {
