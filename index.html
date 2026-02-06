@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>10,000 Hours Journey</title>
     <link id="dynamic-favicon" rel="icon" href="">
     <style>
@@ -27,18 +28,21 @@
             transition: all 0.5s steps(4); 
         }
 
-        /* 手机端专用修改：当屏幕宽度小于 768px 时生效 */
-        @media (max-width: 768px) {
-            body { 
-                justify-content: flex-start; /* 改为靠上对齐，防止地址栏遮挡 */
-                height: auto; 
-                min-height: 100dvh; 
-                padding-top: 100px; /* 这里可以根据遮挡程度继续调大，比如 120px */
-                padding-bottom: 40px;
-                box-sizing: border-box;
-                overflow-y: auto; /* 手机端内容多时允许上下滚动 */
-            }
-        }
+/* 针对手机横屏的专项优化 */
+@media (max-width: 932px) and (orientation: landscape) {
+    body {
+        justify-content: flex-start; /* 靠上对齐，防止垂直居中导致两头被淹没 */
+        height: auto;
+        min-height: 100dvh;
+        padding: 40px 0;    /* 给上下留出滚动余地 */
+        overflow-y: auto;   /* 强制允许上下滚动，这样地址栏再大也能滑下去看 */
+    }
+    .player-card {
+        transform: scale(0.9); /* 横屏时略微缩小卡片，避免溢出 */
+        margin: 20px 0;
+    }
+}
+
         #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
         .player-card { width: 500px; max-width: 100%; position: relative; z-index: 10; perspective: 1000px; }
         .card-inner { position: relative; width: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
