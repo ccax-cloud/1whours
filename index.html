@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>10,000 Hours - Custom Quotes</title>
+    <title>10,000 Hours Journey</title>
     <link id="dynamic-favicon" rel="icon" href="">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-        :root { --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d; --text-primary: #33ff33; --text-secondary: #e0e0e0; --bar-empty: #222; --border-color: #000; --accent-red: #833; --btn-hover-bg: #222; }
-        .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #a33; --btn-hover-bg: #e0e0e0; }
+        :root { --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d; --text-primary: #33ff33; --text-secondary: #e0e0e0; --bar-empty: #222; --border-color: #000; --accent-red: #ff0000; --btn-hover-bg: #222; }
+        .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #cc0000; --btn-hover-bg: #e0e0e0; }
         body { background-color: var(--bg-main); background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); background-size: 20px 20px; color: var(--text-secondary); font-family: 'VT323', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; transition: all 0.5s steps(4); }
         #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
         .player-card { width: 500px; position: relative; z-index: 10; perspective: 1000px; }
@@ -34,8 +34,8 @@
         .heatmap-grid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; background: rgba(0,0,0,0.3); padding: 10px; border: 2px solid var(--border-color); }
         .heat-cell { width: 100%; aspect-ratio: 1/1; background: var(--bar-empty); }
         #quote-container { margin-top: 40px; max-width: 600px; text-align: center; min-height: 60px; z-index: 10; padding: 0 20px; cursor: pointer; border: 1px dashed transparent; transition: border 0.3s; }
-        #quote-container:hover { border: 1px dashed var(--text-primary); }
-        .quote-text { font-size: 1.6rem; color: var(--text-secondary); opacity: 0; transition: opacity 0.3s; pointer-events: none; line-height: 1.2; }
+        #quote-container:hover { border: 1px dashed rgba(255,255,255,0.1); }
+        .quote-text { font-size: 1.6rem; color: var(--text-secondary); opacity: 0; transition: opacity 0.3s; pointer-events: none; line-height: 1.4; }
     </style>
 </head>
 <body class="day-mode">
@@ -54,55 +54,83 @@
             <div class="controls"><button id="start-btn">PLAY</button><button id="pause-btn">PAUSE</button><button id="reset-btn">RESET</button></div>
         </div>
         <div class="card-face card-back">
-            <div class="side-trigger trigger-left" onclick="toggleFlip()" onmouseenter="showTip('<< BACK')" onmouseleave="hideTip()"></div>
+            <div class="side-trigger trigger-left" onclick="toggleFlip()"></div>
             <div class="info-label" style="margin-bottom:15px;">FOCUS HEATMAP (LAST 100 DAYS)</div>
             <div id="heatmap" class="heatmap-grid"></div>
-            <div class="info-label" style="margin-top: 20px; font-size: 0.9rem;">* CLICK QUOTE BELOW TO CUSTOMIZE</div>
+            <div class="info-label" style="margin-top: 20px; font-size: 0.9rem;">* CLICK TEXT BELOW TO CHANGE FOCUS KEYWORD</div>
         </div>
     </div>
 </div>
-<div id="quote-container" onclick="setCustomQuotes()"><div id="quote-content" class="quote-text">Click to set your own quotes...</div></div>
+<div id="quote-container" onclick="setFocusKeyword()"><div id="quote-content" class="quote-text">Syncing...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     const SB_URL = "https://rattzrovuipztscogenj.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhdHR6cm92dWlwenRzY29nZW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNjEyNTgsImV4cCI6MjA4NTkzNzI1OH0.zfMIL_hnFzTXnUG_HdN-NtjJWbmrvmpdJy-OeCiqiOI";
-    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    const YT_API_KEY = "AIzaSyCRqth-MrjfAjhDsdTPP-CPw-xn93oJWAY"; 
     
-    let totalSeconds = 0, todaySeconds = 0, historyData = {}, isDayMode = localStorage.getItem('px_mode') !== 'night', isRunning = false, timerInterval, originalQuote = "", isFlipping = false;
+    const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    let totalSeconds = 0, todaySeconds = 0, historyData = {}, isDayMode = localStorage.getItem('px_mode') !== 'night', isRunning = false, timerInterval, lastQuoteText = "", isFlipping = false;
+    let focusKeyword = localStorage.getItem('focus_keyword') || "study with me";
 
-    // --- CUSTOM QUOTE LOGIC ---
-    let myQuotes = JSON.parse(localStorage.getItem('my_custom_quotes')) || ["Keep going.", "Click here to add your own quotes!"];
-    let quoteIndex = 0;
-
-    function setCustomQuotes() {
-        let input = prompt("Enter your quotes (separate multiple quotes with ';' or '/')", myQuotes.join('; '));
-        if (input !== null) {
-            // 支持用分号、斜杠或中文逗号隔开
-            myQuotes = input.split(/[;/；/]/).map(s => s.trim()).filter(s => s.length > 0);
-            if (myQuotes.length === 0) myQuotes = ["Keep pushing!"];
-            localStorage.setItem('my_custom_quotes', JSON.stringify(myQuotes));
-            quoteIndex = 0;
-            updateQuote();
+    function setFocusKeyword() {
+        let input = prompt("What are you focusing on?", focusKeyword);
+        if (input !== null && input.trim() !== "") {
+            focusKeyword = input.trim();
+            localStorage.setItem('focus_keyword', focusKeyword);
+            updateQuote(true); // 只有修改关键词时才强制刷新数据
         }
     }
 
-    function updateQuote() {
+    async function getLiveLearnersCount() {
+        try {
+            const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&eventType=live&type=video&q=${encodeURIComponent(focusKeyword)}&maxResults=5&key=${YT_API_KEY}`;
+            const searchRes = await fetch(searchUrl);
+            const searchData = await searchRes.json();
+            if (!searchData.items || searchData.items.length === 0) return null;
+            const videoIds = searchData.items.map(item => item.id.videoId).join(',');
+            const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${videoIds}&key=${YT_API_KEY}`;
+            const statsRes = await fetch(statsUrl);
+            const statsData = await statsRes.json();
+            let total = 0;
+            statsData.items.forEach(item => { total += parseInt(item.liveStreamingDetails?.concurrentViewers || 0); });
+            return total;
+        } catch (e) { return null; }
+    }
+
+    // forceRefresh 为 true 时重新抓取 API，否则仅恢复上次的文字
+    async function updateQuote(forceRefresh = false) {
         const c = document.getElementById('quote-content');
-        if (c.style.color !== 'var(--text-primary)' && !isFlipping) {
-            c.innerText = myQuotes[quoteIndex];
-            quoteIndex = (quoteIndex + 1) % myQuotes.length;
+        
+        if (forceRefresh || lastQuoteText === "") {
+            const count = await getLiveLearnersCount();
+            if (count !== null) {
+                const num = count.toLocaleString();
+                const msgs = [
+                    `There are ${num} people in the ${focusKeyword} zone with you.`,
+                    `${num} learners are currently focusing on ${focusKeyword}.`,
+                    `Global Sync: ${num} souls are in the ${focusKeyword} flow.`
+                ];
+                lastQuoteText = msgs[Math.floor(Math.random() * msgs.length)];
+            } else {
+                lastQuoteText = `Keep pushing in your ${focusKeyword} journey. ✨`;
+            }
         }
+        
+        c.innerText = lastQuoteText;
+        c.style.opacity = 1;
     }
 
-    // --- UI & THEME ---
-    const sunIcon = `<svg viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#FFD700"/><rect x="3" y="2" width="10" height="12" fill="#FFD700"/><rect x="2" y="3" width="12" height="10" fill="#FFD700"/><rect x="1" y="5" width="14" height="6" fill="#FFD700"/></svg>`;
-    const moonIcon = `<svg viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#E0E0E0"/><rect x="3" y="2" width="10" height="12" fill="#E0E0E0"/><rect x="2" y="3" width="12" height="10" fill="#E0E0E0"/><rect x="1" y="5" width="14" height="6" fill="#E0E0E0"/><circle cx="5" cy="6" r="1.5" fill="#BDBDBD"/><circle cx="11" cy="5" r="1.2" fill="#BDBDBD"/><circle cx="8" cy="11" r="1.8" fill="#BDBDBD"/></svg>`;
+    // --- Theme & Icons ---
+    const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#FFD700"/><rect x="3" y="2" width="10" height="12" fill="#FFD700"/><rect x="2" y="3" width="12" height="10" fill="#FFD700"/><rect x="1" y="5" width="14" height="6" fill="#FFD700"/></svg>`;
+    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#E0E0E0"/><rect x="3" y="2" width="10" height="12" fill="#E0E0E0"/><rect x="2" y="3" width="12" height="10" fill="#E0E0E0"/><rect x="1" y="5" width="14" height="6" fill="#E0E0E0"/><circle cx="5" cy="6" r="1.5" fill="#BDBDBD"/><circle cx="11" cy="5" r="1.2" fill="#BDBDBD"/><circle cx="8" cy="11" r="1.8" fill="#BDBDBD"/></svg>`;
 
     function renderTheme() {
         localStorage.setItem('px_mode', isDayMode ? 'day' : 'night');
         document.body.className = isDayMode ? 'day-mode' : '';
         document.getElementById('celestial-body').innerHTML = isDayMode ? sunIcon : moonIcon;
+        const favicon = document.getElementById('dynamic-favicon');
+        favicon.href = `data:image/svg+xml,${encodeURIComponent(isDayMode ? sunIcon : moonIcon)}`;
     }
 
     async function syncToCloud() { const payload = { totalSeconds, todaySeconds, historyData, lastUpdate: new Date().toISOString() }; await _supabase.from('records').upsert({ id: 1, data: payload }); }
@@ -130,37 +158,31 @@
             const isBack = document.getElementById('card-root').classList.contains('is-flipped');
             if(isBack) initHeatmap();
             isFlipping = false; 
-            content.style.color = 'var(--text-secondary)'; 
-            content.innerText = myQuotes[quoteIndex % myQuotes.length];
-            content.style.opacity = 1; 
+            // 恢复文字但不刷新 API
+            updateQuote(false);
         }, 650);
     }
 
     function showTip(text) {
-        if (isFlipping) return;
-        const isBack = document.getElementById('card-root').classList.contains('is-flipped');
-        if ((!isBack && text.includes('VIEW')) || (isBack && text.includes('BACK'))) {
-            const content = document.getElementById('quote-content');
-            if (content.style.color !== 'var(--text-primary)') originalQuote = content.innerText;
-            content.innerText = text; 
-            content.style.color = 'var(--text-primary)'; 
-            content.style.opacity = 1;
-        }
+        if (document.getElementById('card-root').classList.contains('is-flipped')) return;
+        const content = document.getElementById('quote-content');
+        content.innerText = text; 
+        content.style.color = 'var(--text-primary)'; 
+        content.style.opacity = 1;
     }
 
     function hideTip() { 
-        if (isFlipping) return; 
         const content = document.getElementById('quote-content');
         content.style.color = 'var(--text-secondary)'; 
-        content.innerText = originalQuote || myQuotes[quoteIndex % myQuotes.length];
+        content.innerText = lastQuoteText;
     }
 
     // --- Controls ---
     document.getElementById('start-btn').onclick = (e) => { e.stopPropagation(); if(!isRunning){ isRunning=true; timerInterval=setInterval(()=>{totalSeconds++; todaySeconds++; updateUI(false);}, 1000); }};
     document.getElementById('pause-btn').onclick = (e) => { e.stopPropagation(); isRunning=false; clearInterval(timerInterval); syncToCloud(); };
-    document.getElementById('reset-btn').onclick = (e) => { e.stopPropagation(); if(confirm("Reset progress?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
-    document.getElementById('edit-total').onclick = (e) => { e.stopPropagation(); let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){ totalSeconds=parseFloat(v)*3600; updateUI(); }};
-    document.getElementById('edit-today').onclick = (e) => { e.stopPropagation(); let v=prompt("Today's Hours:", (todaySeconds/3600).toFixed(2)); if(v){ todaySeconds=parseFloat(v)*3600; updateUI(); }};
+    document.getElementById('reset-btn').onclick = (e) => { e.stopPropagation(); if(confirm("Reset?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
+    document.getElementById('edit-total').onclick = (e) => { e.stopPropagation(); let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v) {totalSeconds=parseFloat(v)*3600; updateUI();}};
+    document.getElementById('edit-today').onclick = (e) => { e.stopPropagation(); let v=prompt("Today's Hours:", (todaySeconds/3600).toFixed(2)); if(v) {todaySeconds=parseFloat(v)*3600; updateUI();}};
     document.getElementById('celestial-body').onclick = (e) => { e.stopPropagation(); isDayMode = !isDayMode; renderTheme(); };
 
     function initHeatmap() {
@@ -174,7 +196,7 @@
         }
     }
 
-    // --- Pure Pixel Fireworks ---
+    // --- Fireworks ---
     const canvas = document.getElementById('fireworks-canvas'), ctx = canvas.getContext('2d');
     let particles = [];
     window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
@@ -195,8 +217,12 @@
     }
 
     window.addEventListener('mousedown', (e) => {
-        const card = document.getElementById('card-root');
-        const rect = card.getBoundingClientRect();
+        const forbiddenTags = ['BUTTON', 'INPUT', 'TEXTAREA'];
+        const isEditTrigger = e.target.classList.contains('edit-trigger');
+        const isQuoteContainer = e.target.closest('#quote-container');
+        if (forbiddenTags.includes(e.target.tagName) || isEditTrigger || isQuoteContainer) return;
+
+        const rect = document.getElementById('card-root').getBoundingClientRect();
         if (!(e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom)) {
             launchCelebration(e.clientX, e.clientY);
         }
@@ -212,14 +238,11 @@
 
     (async function init() {
         renderTheme(); 
-        updateQuote();
-        document.getElementById('quote-content').style.opacity = 1;
-        if (localStorage.getItem('px_date') !== new Date().toLocaleDateString()) { todaySeconds = 0; localStorage.setItem('px_date', new Date().toLocaleDateString()); }
-        await loadFromCloud(); updateUI(false);
+        await loadFromCloud(); 
+        updateUI(false);
+        updateQuote(true); // 初次加载抓取 API
+        setInterval(() => updateQuote(true), 60000); // 每一分钟后台悄悄抓取一次
     })();
-
-    // 每8秒切换一次自定义金句
-    setInterval(updateQuote, 8000);
 </script>
 </body>
 </html>
