@@ -28,20 +28,26 @@
             transition: all 0.5s steps(4); 
         }
 
-/* 针对手机横屏的专项优化 */
-@media (max-width: 932px) and (orientation: landscape) {
-    body {
-        justify-content: flex-start; /* 靠上对齐，防止垂直居中导致两头被淹没 */
-        height: auto;
-        min-height: 100dvh;
-        padding: 40px 0;    /* 给上下留出滚动余地 */
-        overflow-y: auto;   /* 强制允许上下滚动，这样地址栏再大也能滑下去看 */
-    }
-    .player-card {
-        transform: scale(0.9); /* 横屏时略微缩小卡片，避免溢出 */
-        margin: 20px 0;
-    }
-}
+/* 针对手机横屏的专项优化：确保一个屏幕显示全部 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            body {
+                justify-content: flex-start; /* 靠上排列 */
+                padding-top: 10px;           /* 极小的顶部边距 */
+                height: auto;
+                min-height: 100dvh;
+                overflow-y: auto;            /* 万一屏幕太小，允许微调滚动 */
+            }
+            .player-card {
+                /* 核心：横屏时缩小比例（0.7或更小），确保内容不被截断 */
+                transform: scale(0.65); 
+                transform-origin: top center; /* 从顶部开始缩放，防止下方留白过多 */
+                margin-bottom: -100px;        /* 抵消缩放后的空白占用 */
+            }
+            #quote-container {
+                margin-top: 0;
+                transform: scale(0.8);
+            }
+        }
 
         #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
         .player-card { width: 500px; max-width: 100%; position: relative; z-index: 10; perspective: 1000px; }
