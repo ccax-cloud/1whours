@@ -10,35 +10,22 @@
         :root { --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d; --text-primary: #33ff33; --text-secondary: #e0e0e0; --bar-empty: #222; --border-color: #000; --accent-red: #ff0000; --btn-hover-bg: #33ff33; --btn-hover-text: #000; }
         .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #cc0000; --btn-hover-bg: #228b22; --btn-hover-text: #fff; }
         
-        body { 
-            background-color: var(--bg-main); 
-            background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); 
-            background-size: 20px 20px; 
-            color: var(--text-secondary); 
-            font-family: 'VT323', monospace; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            min-height: 100vh;
-            min-height: 100dvh; /* 适配移动端地址栏 */
-            margin: 0; 
-            overflow-x: hidden; 
-            transition: all 0.5s steps(4); 
+        body { background-color: var(--bg-main); background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); background-size: 20px 20px; color: var(--text-secondary); font-family: 'VT323', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; min-height: 100dvh; margin: 0; overflow-x: hidden; transition: all 0.5s steps(4); }
+
+        /* 移动端基础适配 */
+        @media (max-width: 768px) {
+            body { justify-content: flex-start; height: auto; padding-top: 80px; padding-bottom: 40px; box-sizing: border-box; overflow-y: auto; }
         }
 
-        /* 移动端适配：横屏或竖屏下允许滚动，防止地址栏遮挡 */
-        @media (max-width: 932px) { 
-            body { 
-                justify-content: flex-start; 
-                padding: 40px 0; 
-                overflow-y: auto; 
-                -webkit-overflow-scrolling: touch; 
-            }
+        /* 横屏缩放核心逻辑 */
+        @media (max-height: 500px) and (orientation: landscape) {
+            body { padding-top: 20px; justify-content: flex-start; }
+            .player-card { transform: scale(0.65); transform-origin: top center; margin-bottom: -120px; }
+            #quote-container { transform: scale(0.8); margin-top: 0; }
         }
 
         #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
-        .player-card { width: 500px; max-width: 90%; position: relative; z-index: 10; perspective: 1000px; }
+        .player-card { width: 500px; max-width: 90%; position: relative; z-index: 10; perspective: 1000px; transition: transform 0.3s ease; }
         .card-inner { position: relative; width: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
         .is-flipped .card-inner { transform: rotateY(180deg); }
         .card-face { background: var(--container-bg); padding: 30px; border: 4px solid var(--border-color); box-shadow: 8px 8px 0px var(--border-color); width: 100%; box-sizing: border-box; backface-visibility: hidden; position: relative; }
@@ -55,6 +42,10 @@
             button:hover { background: var(--btn-hover-bg) !important; color: var(--btn-hover-text) !important; }
         }
 
+        @media (max-width: 768px) {
+            .edit-trigger { opacity: 0 !important; left: auto; right: 0px; width: 60px; height: 40px; display: flex; }
+        }
+
         .time-display { font-size: 3.2rem; color: var(--text-primary); text-shadow: 2px 2px 0px var(--border-color); line-height: 1; letter-spacing: 1px; pointer-events: none; }
         .progress-container { height: 14px; background: var(--bar-empty); border: 3px solid var(--border-color); margin: 5px 0 15px 0; }
         .bar-fill { height: 100%; width: 0%; background: #888; transition: width 0.3s; }
@@ -67,7 +58,7 @@
         .heatmap-grid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; background: rgba(0,0,0,0.3); padding: 10px; border: 2px solid var(--border-color); }
         .heat-cell { width: 100%; aspect-ratio: 1/1; background: var(--bar-empty); }
 
-        #quote-container { margin-top: 40px; max-width: 600px; text-align: center; min-height: 60px; z-index: 10; padding: 0 20px; cursor: pointer; }
+        #quote-container { margin-top: 40px; max-width: 600px; text-align: center; min-height: 60px; z-index: 10; padding: 0 20px; cursor: pointer; transition: transform 0.3s ease; }
         .quote-text { font-size: 1.6rem; color: var(--text-secondary); opacity: 0; transition: all 0.3s; line-height: 1.4; }
     </style>
 </head>
@@ -220,15 +211,13 @@
         if(isRunning){
             isRunning=false; 
             clearInterval(timerInterval);
-            
             let level = 0;
-            if (sessionSeconds >= 7200) level = 4;      // > 120min
-            else if (sessionSeconds >= 3600) level = 3; // > 60min
-            else if (sessionSeconds >= 2100) level = 2; // > 35min
-            else if (sessionSeconds >= 900) level = 1;  // > 15min
+            if (sessionSeconds >= 7200) level = 4;
+            else if (sessionSeconds >= 3600) level = 3;
+            else if (sessionSeconds >= 2100) level = 2;
+            else if (sessionSeconds >= 900) level = 1;
 
             if (level > 0) launchCelebration(window.innerWidth/2, window.innerHeight/2, level);
-            
             sessionSeconds = 0; 
             syncToCloud(); 
         }
