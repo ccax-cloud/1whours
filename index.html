@@ -2,200 +2,102 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>10,000 Hours Journey</title>
-    <link id="dynamic-favicon" rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2016%2016%22%3E%3Crect%20x%3D%225%22%20y%3D%221%22%20width%3D%226%22%20height%3D%2214%22%20fill%3D%22%23FFD700%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%222%22%20width%3D%2210%22%20height%3D%2212%22%20fill%3D%22%23FFD700%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%223%22%20width%3D%2212%22%20height%3D%2210%22%20fill%3D%22%23FFD700%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%225%22%20width%3D%2214%22%20height%3D%226%22%20fill%3D%22%23FFD700%22%2F%3E%3C%2Fsvg%3E">
+    <title>10,000 Hours - Custom Quotes</title>
+    <link id="dynamic-favicon" rel="icon" href="">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
-
-        :root {
-            --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d;
-            --text-primary: #33ff33; --text-secondary: #e0e0e0;
-            --bar-empty: #222; --border-color: #000; --accent-red: #833;
-            --btn-hover-bg: #222; --btn-reset-hover: #a33;
-        }
-
-        .day-mode {
-            --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0;
-            --text-primary: #228b22; --text-secondary: #222;
-            --bar-empty: #cccccc; --border-color: #444; --accent-red: #a33;
-            --btn-hover-bg: #e0e0e0; --btn-reset-hover: #c44;
-        }
-
-        body {
-            background-color: var(--bg-main);
-            background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px);
-            background-size: 20px 20px;
-            color: var(--text-secondary);
-            font-family: 'VT323', monospace;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            height: 100vh; margin: 0; overflow: hidden; transition: all 0.5s steps(4);
-        }
-
-        /* 核心修改：烟花置顶 */
-        #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
-
+        :root { --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d; --text-primary: #33ff33; --text-secondary: #e0e0e0; --bar-empty: #222; --border-color: #000; --accent-red: #833; --btn-hover-bg: #222; }
+        .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #a33; --btn-hover-bg: #e0e0e0; }
+        body { background-color: var(--bg-main); background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); background-size: 20px 20px; color: var(--text-secondary); font-family: 'VT323', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; transition: all 0.5s steps(4); }
+        #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
         .player-card { width: 500px; position: relative; z-index: 10; perspective: 1000px; }
         .card-inner { position: relative; width: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
         .is-flipped .card-inner { transform: rotateY(180deg); }
-
-        .card-face {
-            background: var(--container-bg); padding: 30px; border: 4px solid var(--border-color);
-            box-shadow: 8px 8px 0px var(--border-color); width: 100%; box-sizing: border-box;
-            backface-visibility: hidden; position: relative;
-        }
-
+        .card-face { background: var(--container-bg); padding: 30px; border: 4px solid var(--border-color); box-shadow: 8px 8px 0px var(--border-color); width: 100%; box-sizing: border-box; backface-visibility: hidden; position: relative; }
         .card-back { position: absolute; top: 0; left: 0; height: 100%; width: 100%; transform: rotateY(180deg); display: flex; flex-direction: column; justify-content: center; }
-
-        .side-trigger { position: absolute; top: 50%; transform: translateY(-50%) translateZ(10px); width: 50px; height: 200px; cursor: pointer; background: transparent; z-index: 999; }
-        .trigger-right { right: 0; }
-        .trigger-left { left: 0; }
-
-        .orbit-container { position: absolute; top: 25px; right: 25px; width: 48px; height: 48px; z-index: 20; }
+        .side-trigger { position: absolute; top: 50%; transform: translateY(-50%) translateZ(1px); width: 40px; height: 200px; cursor: pointer; background: transparent; z-index: 50; }
+        .trigger-right { right: 0; } .trigger-left { left: 0; }
+        .orbit-container { position: absolute; top: 25px; right: 25px; width: 48px; height: 48px; z-index: 100; }
         #celestial-body { width: 48px; height: 48px; cursor: pointer; image-rendering: pixelated; }
         #celestial-body svg { width: 100%; height: 100%; }
-
         .time-box { position: relative; text-align: center; margin-bottom: 10px; display: inline-flex; align-items: center; justify-content: center; width: 100%; }
-        
-        .edit-trigger { 
-            position: absolute; 
-            left: calc(50% + 110px); 
-            top: 50%; 
-            transform: translateY(-50%); 
-            font-size: 0.8rem; 
-            opacity: 0; 
-            cursor: pointer; 
-            transition: opacity 0.2s; 
-            background: var(--text-primary); 
-            color: #000; 
-            padding: 2px 4px; 
-            font-weight: bold; 
-            white-space: nowrap; 
-        }
+        .edit-trigger { position: absolute; left: calc(50% + 110px); top: 50%; transform: translateY(-50%); font-size: 0.8rem; opacity: 0; cursor: pointer; transition: opacity 0.2s; background: var(--text-primary); color: #000; padding: 2px 4px; font-weight: bold; }
         .time-box:hover .edit-trigger { opacity: 1; }
-        
         .time-display { font-size: 3.2rem; color: var(--text-primary); text-shadow: 2px 2px 0px var(--border-color); line-height: 1; letter-spacing: 1px; }
-        
         .progress-container { height: 14px; background: var(--bar-empty); border: 3px solid var(--border-color); margin: 5px 0 15px 0; }
         .bar-fill { height: 100%; width: 0%; background: #888; transition: width 0.3s; }
         .info-label { font-size: 1.1rem; opacity: 0.7; letter-spacing: 1px; display: flex; justify-content: space-between; margin-top: 5px; }
         .controls { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px; }
-        button { background: var(--bar-empty); border: 3px solid var(--border-color); color: var(--text-secondary); padding: 12px 0; font-family: 'VT323', monospace; font-size: 1.4rem; cursor: pointer; box-shadow: 4px 4px 0px var(--border-color); transition: background 0.2s ease; }
+        button { background: var(--bar-empty); border: 3px solid var(--border-color); color: var(--text-secondary); padding: 12px 0; font-family: 'VT323', monospace; font-size: 1.4rem; cursor: pointer; box-shadow: 4px 4px 0px var(--border-color); transition: background 0.2s ease; z-index: 20; }
         button:hover { background: var(--btn-hover-bg); }
         #reset-btn { background: var(--accent-red); color: white; }
-
         .heatmap-grid { display: grid; grid-template-columns: repeat(20, 1fr); gap: 4px; background: rgba(0,0,0,0.3); padding: 10px; border: 2px solid var(--border-color); }
         .heat-cell { width: 100%; aspect-ratio: 1/1; background: var(--bar-empty); }
-        #quote-container { margin-top: 40px; max-width: 600px; text-align: center; min-height: 50px; z-index: 10; padding: 0 20px; }
-        .quote-text { font-size: 1.6rem; color: var(--text-secondary); opacity: 0; transition: opacity 0.8s; }
+        #quote-container { margin-top: 40px; max-width: 600px; text-align: center; min-height: 60px; z-index: 10; padding: 0 20px; cursor: pointer; border: 1px dashed transparent; transition: border 0.3s; }
+        #quote-container:hover { border: 1px dashed var(--text-primary); }
+        .quote-text { font-size: 1.6rem; color: var(--text-secondary); opacity: 0; transition: opacity 0.3s; pointer-events: none; line-height: 1.2; }
     </style>
 </head>
 <body class="day-mode">
-
 <canvas id="fireworks-canvas"></canvas>
-
 <div class="player-card" id="card-root">
     <div class="card-inner">
         <div class="card-face">
             <div class="side-trigger trigger-right" onclick="toggleFlip()" onmouseenter="showTip('VIEW HEATMAP >>')" onmouseleave="hideTip()"></div>
             <div class="orbit-container"><div id="celestial-body" title="Switch Mode"></div></div>
             <div class="info-label">TOTAL JOURNEY</div>
-            <div class="time-box">
-                <span class="time-display" id="total-time">0000:00:00</span>
-                <div class="edit-trigger" id="edit-total">EDIT</div>
-            </div>
+            <div class="time-box"><span class="time-display" id="total-time">0000:00:00</span><div class="edit-trigger" id="edit-total">EDIT</div></div>
             <div class="info-label">TODAY'S RECORD</div>
-            <div class="time-box">
-                <span class="time-display" id="today-time" style="font-size: 2.2rem;">00:00</span>
-                <div class="edit-trigger" id="edit-today">EDIT</div>
-            </div>
+            <div class="time-box"><span class="time-display" id="today-time" style="font-size: 2.2rem;">00:00</span><div class="edit-trigger" id="edit-today">EDIT</div></div>
             <div class="info-label"><span>YEAR PROGRESS</span><span id="year-stats">0/365 DAYS (0%)</span></div>
             <div class="progress-container"><div id="year-bar" class="bar-fill"></div></div>
-            <div class="controls">
-                <button id="start-btn">PLAY</button>
-                <button id="pause-btn">PAUSE</button>
-                <button id="reset-btn">RESET</button>
-            </div>
+            <div class="controls"><button id="start-btn">PLAY</button><button id="pause-btn">PAUSE</button><button id="reset-btn">RESET</button></div>
         </div>
         <div class="card-face card-back">
             <div class="side-trigger trigger-left" onclick="toggleFlip()" onmouseenter="showTip('<< BACK')" onmouseleave="hideTip()"></div>
             <div class="info-label" style="margin-bottom:15px;">FOCUS HEATMAP (LAST 100 DAYS)</div>
             <div id="heatmap" class="heatmap-grid"></div>
-            <div class="info-label" style="margin-top: 20px; font-size: 0.9rem;">* PROGRESS TRACKER - FOCUS INTENSITY</div>
+            <div class="info-label" style="margin-top: 20px; font-size: 0.9rem;">* CLICK QUOTE BELOW TO CUSTOMIZE</div>
         </div>
     </div>
 </div>
-
-<div id="quote-container"><div id="quote-content" class="quote-text">Progress over perfection.</div></div>
+<div id="quote-container" onclick="setCustomQuotes()"><div id="quote-content" class="quote-text">Click to set your own quotes...</div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-    // 云端配置
     const SB_URL = "https://rattzrovuipztscogenj.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhdHR6cm92dWlwenRzY29nZW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNjEyNTgsImV4cCI6MjA4NTkzNzI1OH0.zfMIL_hnFzTXnUG_HdN-NtjJWbmrvmpdJy-OeCiqiOI";
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
+    
+    let totalSeconds = 0, todaySeconds = 0, historyData = {}, isDayMode = localStorage.getItem('px_mode') !== 'night', isRunning = false, timerInterval, originalQuote = "", isFlipping = false;
 
-    let totalSeconds = 0, todaySeconds = 0, historyData = {}, lastCelebrated = 0;
-    let isDayMode = localStorage.getItem('px_mode') !== 'night';
-    let isRunning = false, timerInterval, originalQuote = "", isFlipping = false, tipTimeout, hideTimeout;
+    // --- CUSTOM QUOTE LOGIC ---
+    let myQuotes = JSON.parse(localStorage.getItem('my_custom_quotes')) || ["Keep going.", "Click here to add your own quotes!"];
+    let quoteIndex = 0;
 
+    function setCustomQuotes() {
+        let input = prompt("Enter your quotes (separate multiple quotes with ';' or '/')", myQuotes.join('; '));
+        if (input !== null) {
+            // 支持用分号、斜杠或中文逗号隔开
+            myQuotes = input.split(/[;/；/]/).map(s => s.trim()).filter(s => s.length > 0);
+            if (myQuotes.length === 0) myQuotes = ["Keep pushing!"];
+            localStorage.setItem('my_custom_quotes', JSON.stringify(myQuotes));
+            quoteIndex = 0;
+            updateQuote();
+        }
+    }
+
+    function updateQuote() {
+        const c = document.getElementById('quote-content');
+        if (c.style.color !== 'var(--text-primary)' && !isFlipping) {
+            c.innerText = myQuotes[quoteIndex];
+            quoteIndex = (quoteIndex + 1) % myQuotes.length;
+        }
+    }
+
+    // --- UI & THEME ---
     const sunIcon = `<svg viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#FFD700"/><rect x="3" y="2" width="10" height="12" fill="#FFD700"/><rect x="2" y="3" width="12" height="10" fill="#FFD700"/><rect x="1" y="5" width="14" height="6" fill="#FFD700"/></svg>`;
     const moonIcon = `<svg viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#E0E0E0"/><rect x="3" y="2" width="10" height="12" fill="#E0E0E0"/><rect x="2" y="3" width="12" height="10" fill="#E0E0E0"/><rect x="1" y="5" width="14" height="6" fill="#E0E0E0"/><circle cx="5" cy="6" r="1.5" fill="#BDBDBD"/><circle cx="11" cy="5" r="1.2" fill="#BDBDBD"/><circle cx="8" cy="11" r="1.8" fill="#BDBDBD"/></svg>`;
-    const baseQuotes = ["Keep going.", "Believe in yourself.", "Consistency is key.", "Success is a habit.", "Trust the process.", "Progress over perfection."];
-
-    // --- 同步逻辑 ---
-    async function syncToCloud() {
-        const payload = { totalSeconds, todaySeconds, historyData, lastCelebrated, lastUpdate: new Date().toISOString() };
-        await _supabase.from('records').upsert({ id: 1, data: payload });
-    }
-
-    async function loadFromCloud() {
-        const { data } = await _supabase.from('records').select('data').eq('id', 1).single();
-        if (data?.data) {
-            totalSeconds = data.data.totalSeconds || 0;
-            todaySeconds = data.data.todaySeconds || 0;
-            historyData = data.data.historyData || {};
-            lastCelebrated = data.data.lastCelebrated || 0;
-            updateUI(false);
-        }
-    }
-
-    function formatTime(totalSecs) {
-        const hrs = Math.floor(totalSecs / 3600);
-        const mins = Math.floor((totalSecs % 3600) / 60);
-        const secs = Math.floor(totalSecs % 60);
-        return `${hrs.toString().padStart(4, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    function updateUI(shouldSync = true) {
-        document.getElementById('total-time').innerText = formatTime(totalSeconds);
-        document.getElementById('today-time').innerText = formatTime(todaySeconds).substring(5);
-
-        const now = new Date();
-        const start = new Date(now.getFullYear(), 0, 0);
-        const dayOfYear = Math.floor((now - start) / 86400000);
-        const yearPercent = (dayOfYear / 365 * 100).toFixed(2);
-        document.getElementById('year-stats').innerText = `${dayOfYear}/365 DAYS (${yearPercent}%)`;
-        document.getElementById('year-bar').style.width = yearPercent + '%';
-
-        if (Math.floor(totalSeconds/18000) > lastCelebrated && totalSeconds > 0) {
-            launchCelebration();
-            lastCelebrated = Math.floor(totalSeconds/18000);
-        }
-
-        historyData[new Date().toLocaleDateString()] = todaySeconds;
-        localStorage.setItem('px_total', totalSeconds);
-        localStorage.setItem('px_today', todaySeconds);
-        if (shouldSync) syncToCloud();
-    }
-
-    // --- 按钮逻辑 ---
-    document.getElementById('start-btn').onclick = () => { if(!isRunning){ isRunning=true; timerInterval=setInterval(()=>{totalSeconds++; todaySeconds++; updateUI(false);}, 1000); }};
-    document.getElementById('pause-btn').onclick = () => { isRunning=false; clearInterval(timerInterval); syncToCloud(); };
-    document.getElementById('reset-btn').onclick = () => { if(confirm("Reset?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
-    document.getElementById('edit-total').onclick = () => { let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){ totalSeconds=v*3600; updateUI(); }};
-    document.getElementById('edit-today').onclick = () => { let v=prompt("Today Hours:", (todaySeconds/3600).toFixed(2)); if(v){ todaySeconds=v*3600; updateUI(); }};
-    document.getElementById('celestial-body').onclick = () => { isDayMode = !isDayMode; renderTheme(); };
 
     function renderTheme() {
         localStorage.setItem('px_mode', isDayMode ? 'day' : 'night');
@@ -203,29 +105,68 @@
         document.getElementById('celestial-body').innerHTML = isDayMode ? sunIcon : moonIcon;
     }
 
+    async function syncToCloud() { const payload = { totalSeconds, todaySeconds, historyData, lastUpdate: new Date().toISOString() }; await _supabase.from('records').upsert({ id: 1, data: payload }); }
+    async function loadFromCloud() { const { data } = await _supabase.from('records').select('data').eq('id', 1).single(); if (data?.data) { totalSeconds = data.data.totalSeconds || 0; todaySeconds = data.data.todaySeconds || 0; historyData = data.data.historyData || {}; updateUI(false); } }
+    function formatTime(totalSecs) { const hrs = Math.floor(totalSecs / 3600); const mins = Math.floor((totalSecs % 3600) / 60); const secs = Math.floor(totalSecs % 60); return `${hrs.toString().padStart(4, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`; }
+    
+    function updateUI(shouldSync = true) {
+        document.getElementById('total-time').innerText = formatTime(totalSeconds);
+        document.getElementById('today-time').innerText = formatTime(todaySeconds).substring(5);
+        const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+        const yearPercent = (dayOfYear / 365 * 100).toFixed(2);
+        document.getElementById('year-stats').innerText = `${dayOfYear}/365 DAYS (${yearPercent}%)`;
+        document.getElementById('year-bar').style.width = yearPercent + '%';
+        historyData[new Date().toLocaleDateString()] = todaySeconds;
+        if (shouldSync) syncToCloud();
+    }
+
     function toggleFlip() {
+        if (isFlipping) return;
+        isFlipping = true;
+        const content = document.getElementById('quote-content');
+        content.style.opacity = 0; 
         document.getElementById('card-root').classList.toggle('is-flipped');
-        if(document.getElementById('card-root').classList.contains('is-flipped')) initHeatmap();
+        setTimeout(() => { 
+            const isBack = document.getElementById('card-root').classList.contains('is-flipped');
+            if(isBack) initHeatmap();
+            isFlipping = false; 
+            content.style.color = 'var(--text-secondary)'; 
+            content.innerText = myQuotes[quoteIndex % myQuotes.length];
+            content.style.opacity = 1; 
+        }, 650);
     }
 
     function showTip(text) {
-        const content = document.getElementById('quote-content');
-        originalQuote = content.innerText;
-        content.innerText = text;
-        content.style.color = 'var(--text-primary)';
-        content.style.opacity = 1;
+        if (isFlipping) return;
+        const isBack = document.getElementById('card-root').classList.contains('is-flipped');
+        if ((!isBack && text.includes('VIEW')) || (isBack && text.includes('BACK'))) {
+            const content = document.getElementById('quote-content');
+            if (content.style.color !== 'var(--text-primary)') originalQuote = content.innerText;
+            content.innerText = text; 
+            content.style.color = 'var(--text-primary)'; 
+            content.style.opacity = 1;
+        }
     }
 
-    function hideTip() {
+    function hideTip() { 
+        if (isFlipping) return; 
         const content = document.getElementById('quote-content');
-        content.style.color = 'var(--text-secondary)';
-        content.innerText = originalQuote;
+        content.style.color = 'var(--text-secondary)'; 
+        content.innerText = originalQuote || myQuotes[quoteIndex % myQuotes.length];
     }
+
+    // --- Controls ---
+    document.getElementById('start-btn').onclick = (e) => { e.stopPropagation(); if(!isRunning){ isRunning=true; timerInterval=setInterval(()=>{totalSeconds++; todaySeconds++; updateUI(false);}, 1000); }};
+    document.getElementById('pause-btn').onclick = (e) => { e.stopPropagation(); isRunning=false; clearInterval(timerInterval); syncToCloud(); };
+    document.getElementById('reset-btn').onclick = (e) => { e.stopPropagation(); if(confirm("Reset progress?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
+    document.getElementById('edit-total').onclick = (e) => { e.stopPropagation(); let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){ totalSeconds=parseFloat(v)*3600; updateUI(); }};
+    document.getElementById('edit-today').onclick = (e) => { e.stopPropagation(); let v=prompt("Today's Hours:", (todaySeconds/3600).toFixed(2)); if(v){ todaySeconds=parseFloat(v)*3600; updateUI(); }};
+    document.getElementById('celestial-body').onclick = (e) => { e.stopPropagation(); isDayMode = !isDayMode; renderTheme(); };
 
     function initHeatmap() {
-        const h = document.getElementById('heatmap'); h.innerHTML = '';
+        const h = document.getElementById('heatmap'); h.innerHTML = ''; const now = new Date();
         for (let i = 99; i >= 0; i--) {
-            const d = new Date(); d.setDate(d.getDate() - i);
+            const d = new Date(); d.setDate(now.getDate() - i);
             const hrs = (historyData[d.toLocaleDateString()] || 0) / 3600;
             const cell = document.createElement('div'); cell.className = 'heat-cell';
             if (hrs > 0) cell.style.background = `rgba(${isDayMode?'34,139,34':'51,255,51'}, ${Math.min(0.2+hrs/5, 1)})`;
@@ -233,52 +174,52 @@
         }
     }
 
-    // --- 烟花 ---
-    const canvas = document.getElementById('fireworks-canvas');
-    const ctx = canvas.getContext('2d');
+    // --- Pure Pixel Fireworks ---
+    const canvas = document.getElementById('fireworks-canvas'), ctx = canvas.getContext('2d');
     let particles = [];
     window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
     window.dispatchEvent(new Event('resize'));
 
-    class Particle {
-        constructor(x, y, color) {
-            this.x = x; this.y = y; this.color = color;
-            this.vx = (Math.random()-0.5)*12; this.vy = (Math.random()-0.5)*12; this.alpha = 1;
+    class Particle { 
+        constructor(x, y, color) { 
+            this.x = x; this.y = y; this.color = color; 
+            this.vx = (Math.random()-0.5)*15; this.vy = (Math.random()-0.5)*15; this.alpha = 1; 
+        } 
+        update() { this.x += this.vx; this.y += this.vy; this.vy += 0.25; this.alpha -= 0.015; } 
+        draw() { ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, 4, 4); } 
+    }
+
+    function launchCelebration(x, y) { 
+        const colors = isDayMode ? ['#228b22', '#ff4500', '#ffd700', '#1e90ff'] : ['#33ff33', '#ffffff', '#ffeb3b', '#ff4081'];
+        for(let i=0; i<60; i++) particles.push(new Particle(x, y, colors[Math.floor(Math.random()*colors.length)])); 
+    }
+
+    window.addEventListener('mousedown', (e) => {
+        const card = document.getElementById('card-root');
+        const rect = card.getBoundingClientRect();
+        if (!(e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom)) {
+            launchCelebration(e.clientX, e.clientY);
         }
-        update() { this.x += this.vx; this.y += this.vy; this.vy += 0.2; this.alpha -= 0.015; }
-        draw() { ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, 4, 4); }
-    }
+    });
 
-    function launchCelebration() {
-        const colors = ['#33ff33', '#ffffff', '#ffeb3b', '#ff4081'];
-        for(let i=0; i<80; i++) particles.push(new Particle(window.innerWidth/2, window.innerHeight/2, colors[Math.floor(Math.random()*colors.length)]));
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles = particles.filter(p => p.alpha > 0);
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
+    function animate() { 
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        particles = particles.filter(p => p.alpha > 0); 
+        particles.forEach(p => { p.update(); p.draw(); }); 
+        requestAnimationFrame(animate); 
     }
     animate();
 
-    // --- 初始化 ---
     (async function init() {
-        renderTheme();
-        if (localStorage.getItem('px_date') !== new Date().toLocaleDateString()) {
-            todaySeconds = 0; localStorage.setItem('px_date', new Date().toLocaleDateString());
-        }
-        await loadFromCloud();
-        updateUI(false);
+        renderTheme(); 
+        updateQuote();
+        document.getElementById('quote-content').style.opacity = 1;
+        if (localStorage.getItem('px_date') !== new Date().toLocaleDateString()) { todaySeconds = 0; localStorage.setItem('px_date', new Date().toLocaleDateString()); }
+        await loadFromCloud(); updateUI(false);
     })();
 
-    setInterval(() => {
-        const c = document.getElementById('quote-content');
-        if (c.style.color !== 'var(--text-primary)') {
-            c.style.opacity = 0;
-            setTimeout(() => { c.innerText = baseQuotes[Math.floor(Math.random()*baseQuotes.length)]; c.style.opacity = 1; }, 500);
-        }
-    }, 10000);
+    // 每8秒切换一次自定义金句
+    setInterval(updateQuote, 8000);
 </script>
 </body>
 </html>
