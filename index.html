@@ -10,6 +10,7 @@
         .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #cc0000; --btn-hover-bg: #e0e0e0; }
         
         /* 核心修改：适配移动端动态视口和地址栏遮挡 */
+/* 默认样式（网页端）：保持垂直居中 */
         body { 
             background-color: var(--bg-main); 
             background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); 
@@ -20,14 +21,24 @@
             flex-direction: column; 
             justify-content: center; 
             align-items: center; 
-            min-height: 100dvh; /* 适配手机浏览器动态高度 */
-            padding: 60px 20px; /* 增加上下内边距，避开地址栏 */
-            box-sizing: border-box;
+            height: 100vh; 
             margin: 0; 
-            overflow-x: hidden; 
+            overflow: hidden; 
             transition: all 0.5s steps(4); 
         }
 
+        /* 手机端专用修改：当屏幕宽度小于 768px 时生效 */
+        @media (max-width: 768px) {
+            body { 
+                justify-content: flex-start; /* 改为靠上对齐，防止地址栏遮挡 */
+                height: auto; 
+                min-height: 100dvh; 
+                padding-top: 100px; /* 这里可以根据遮挡程度继续调大，比如 120px */
+                padding-bottom: 40px;
+                box-sizing: border-box;
+                overflow-y: auto; /* 手机端内容多时允许上下滚动 */
+            }
+        }
         #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; }
         .player-card { width: 500px; max-width: 100%; position: relative; z-index: 10; perspective: 1000px; }
         .card-inner { position: relative; width: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
