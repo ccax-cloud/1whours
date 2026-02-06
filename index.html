@@ -4,42 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>10,000 Hours Journey</title>
-    <link id="dynamic-favicon" rel="icon" href="">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
         :root { --bg-main: #050505; --bg-pattern: #1a1a1a; --container-bg: #0d0d0d; --text-primary: #33ff33; --text-secondary: #e0e0e0; --bar-empty: #222; --border-color: #000; --accent-red: #ff0000; --btn-hover-bg: #222; }
         .day-mode { --bg-main: #e0e0e0; --bg-pattern: #d0d0d0; --container-bg: #f0f0f0; --text-primary: #228b22; --text-secondary: #222; --bar-empty: #cccccc; --border-color: #444; --accent-red: #cc0000; --btn-hover-bg: #e0e0e0; }
         
-        body { 
-            background-color: var(--bg-main); 
-            background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); 
-            background-size: 20px 20px; 
-            color: var(--text-secondary); 
-            font-family: 'VT323', monospace; 
-            display: flex; 
-            flex-direction: column; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-            overflow: hidden; 
-            transition: all 0.5s steps(4); 
-        }
+        body { background-color: var(--bg-main); background-image: radial-gradient(var(--bg-pattern) 1px, transparent 1px); background-size: 20px 20px; color: var(--text-secondary); font-family: 'VT323', monospace; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; transition: all 0.5s steps(4); }
 
-        /* 手机端适配：避开地址栏 */
         @media (max-width: 768px) {
-            body { 
-                justify-content: flex-start; 
-                height: auto; 
-                min-height: 100dvh; 
-                padding-top: 100px; 
-                padding-bottom: 40px;
-                box-sizing: border-box;
-                overflow-y: auto; 
-            }
+            body { justify-content: flex-start; height: auto; min-height: 100dvh; padding-top: 100px; padding-bottom: 40px; box-sizing: border-box; overflow-y: auto; }
         }
 
-        /* 横屏适配 */
         @media (max-height: 500px) and (orientation: landscape) {
             body { padding-top: 20px; justify-content: flex-start; }
             .player-card { transform: scale(0.65); transform-origin: top center; margin-bottom: -120px; }
@@ -57,7 +32,7 @@
         #celestial-body { width: 48px; height: 48px; cursor: pointer; image-rendering: pixelated; }
         #celestial-body svg { width: 100%; height: 100%; }
 
-        /* Edit 按钮逻辑优化 */
+        /* --- EDIT 按钮终极修复 --- */
         .time-box { position: relative; text-align: center; margin-bottom: 10px; display: inline-flex; align-items: center; justify-content: center; width: 100%; }
         .edit-trigger { 
             position: absolute; 
@@ -67,25 +42,31 @@
             font-size: 0.8rem; 
             opacity: 0; 
             cursor: pointer; 
-            transition: opacity 0.2s; 
             background: var(--text-primary); 
             color: #000; 
             padding: 2px 6px; 
             font-weight: bold; 
             z-index: 110;
+            transition: opacity 0.2s;
         }
 
+        /* 仅在支持鼠标悬停的设备上显示 EDIT 文字 */
         @media (hover: hover) {
             .time-box:hover .edit-trigger { opacity: 1; }
         }
 
+        /* 触摸屏设备：彻底隐藏文字，保持透明点击区 */
         @media (max-width: 768px) {
             .edit-trigger { 
-                opacity: 0.1; /* 手机端平时近乎透明 */
+                opacity: 0 !important; /* 强制不显示文字 */
                 left: auto; 
                 right: 0px; 
+                width: 60px; /* 增加一点点击面积，方便点中 */
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
-            .time-box:active .edit-trigger { opacity: 1; } /* 触摸时显示 */
         }
 
         .time-display { font-size: 3.2rem; color: var(--text-primary); text-shadow: 2px 2px 0px var(--border-color); line-height: 1; letter-spacing: 1px; }
