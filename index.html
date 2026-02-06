@@ -31,7 +31,8 @@
             height: 100vh; margin: 0; overflow: hidden; transition: all 0.5s steps(4);
         }
 
-        #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5; }
+        /* 核心修改：烟花置顶 */
+        #fireworks-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; }
 
         .player-card { width: 500px; position: relative; z-index: 10; perspective: 1000px; }
         .card-inner { position: relative; width: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
@@ -129,16 +130,12 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-    // 1. 初始化 Supabase
+    // 云端配置
     const SB_URL = "https://rattzrovuipztscogenj.supabase.co";
     const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJhdHR6cm92dWlwenRzY29nZW5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzNjEyNTgsImV4cCI6MjA4NTkzNzI1OH0.zfMIL_hnFzTXnUG_HdN-NtjJWbmrvmpdJy-OeCiqiOI";
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    // 2. 核心数据
-    let totalSeconds = 0;
-    let todaySeconds = 0;
-    let historyData = {};
-    let lastCelebrated = 0;
+    let totalSeconds = 0, todaySeconds = 0, historyData = {}, lastCelebrated = 0;
     let isDayMode = localStorage.getItem('px_mode') !== 'night';
     let isRunning = false, timerInterval, originalQuote = "", isFlipping = false, tipTimeout, hideTimeout;
 
@@ -146,35 +143,23 @@
     const moonIcon = `<svg viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#E0E0E0"/><rect x="3" y="2" width="10" height="12" fill="#E0E0E0"/><rect x="2" y="3" width="12" height="10" fill="#E0E0E0"/><rect x="1" y="5" width="14" height="6" fill="#E0E0E0"/><circle cx="5" cy="6" r="1.5" fill="#BDBDBD"/><circle cx="11" cy="5" r="1.2" fill="#BDBDBD"/><circle cx="8" cy="11" r="1.8" fill="#BDBDBD"/></svg>`;
     const baseQuotes = ["Keep going.", "Believe in yourself.", "Consistency is key.", "Success is a habit.", "Trust the process.", "Progress over perfection."];
 
-    // --- 云端同步逻辑 ---
+    // --- 同步逻辑 ---
+    async function syncToCloud() {
+        const payload = { totalSeconds, todaySeconds, historyData, lastCelebrated, lastUpdate: new Date().toISOString() };
+        await _supabase.from('records').upsert({ id: 1, data: payload });
+    }
+
     async function loadFromCloud() {
-        try {
-            const { data, error } = await _supabase.from('records').select('data').eq('id', 1).single();
-            if (data && data.data) {
-                const cloud = data.data;
-                totalSeconds = cloud.totalSeconds || 0;
-                todaySeconds = cloud.todaySeconds || 0;
-                historyData = cloud.historyData || {};
-                lastCelebrated = cloud.lastCelebrated || 0;
-                updateUI(false);
-                console.log("Synced from cloud");
-            }
-        } catch (e) { console.error(e); }
+        const { data } = await _supabase.from('records').select('data').eq('id', 1).single();
+        if (data?.data) {
+            totalSeconds = data.data.totalSeconds || 0;
+            todaySeconds = data.data.todaySeconds || 0;
+            historyData = data.data.historyData || {};
+            lastCelebrated = data.data.lastCelebrated || 0;
+            updateUI(false);
+        }
     }
 
-    let saveTimeout;
-    function syncToCloud() {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-            const payload = {
-                totalSeconds, todaySeconds, historyData, lastCelebrated,
-                lastUpdate: new Date().toISOString()
-            };
-            await _supabase.from('records').upsert({ id: 1, data: payload });
-        }, 3000); 
-    }
-
-    // --- 界面逻辑 ---
     function formatTime(totalSecs) {
         const hrs = Math.floor(totalSecs / 3600);
         const mins = Math.floor((totalSecs % 3600) / 60);
@@ -188,65 +173,29 @@
 
         const now = new Date();
         const start = new Date(now.getFullYear(), 0, 0);
-        const diff = now - start;
-        const dayOfYear = Math.floor(diff / 86400000);
+        const dayOfYear = Math.floor((now - start) / 86400000);
         const yearPercent = (dayOfYear / 365 * 100).toFixed(2);
-        
         document.getElementById('year-stats').innerText = `${dayOfYear}/365 DAYS (${yearPercent}%)`;
         document.getElementById('year-bar').style.width = yearPercent + '%';
 
-        const h = totalSeconds / 3600;
-        if (Math.floor(h/5) > lastCelebrated && h > 0) { 
-            launchCelebration(); 
-            lastCelebrated = Math.floor(h/5); 
+        if (Math.floor(totalSeconds/18000) > lastCelebrated && totalSeconds > 0) {
+            launchCelebration();
+            lastCelebrated = Math.floor(totalSeconds/18000);
         }
-        
-        const todayStr = new Date().toLocaleDateString();
-        historyData[todayStr] = todaySeconds;
-        
+
+        historyData[new Date().toLocaleDateString()] = todaySeconds;
         localStorage.setItem('px_total', totalSeconds);
         localStorage.setItem('px_today', todaySeconds);
-        localStorage.setItem('px_history', JSON.stringify(historyData));
-        
         if (shouldSync) syncToCloud();
     }
 
-    // --- 按钮事件 ---
-    document.getElementById('start-btn').onclick = () => { 
-        if(!isRunning){ 
-            isRunning=true; 
-            timerInterval=setInterval(()=>{totalSeconds+=1; todaySeconds+=1; updateUI();}, 1000); 
-        }
-    };
-
-    document.getElementById('pause-btn').onclick = () => { 
-        isRunning=false; 
-        clearInterval(timerInterval); 
-        updateUI(true); 
-    };
-
-    document.getElementById('reset-btn').onclick = () => { 
-        if(confirm("Reset Journey?")){ 
-            totalSeconds=0; todaySeconds=0; historyData={}; 
-            updateUI(); 
-        }
-    };
-
-    // 编辑功能补全
-    document.getElementById('edit-total').onclick = () => { 
-        let v = prompt("Total Hours:", (totalSeconds / 3600).toFixed(2)); 
-        if (v !== null) { totalSeconds = parseFloat(v) * 3600; updateUI(); }
-    };
-    document.getElementById('edit-today').onclick = () => { 
-        let v = prompt("Today's Hours:", (todaySeconds / 3600).toFixed(2)); 
-        if (v !== null) { todaySeconds = parseFloat(v) * 3600; updateUI(); }
-    };
-
-    document.getElementById('celestial-body').onclick = (e) => { 
-        e.stopPropagation(); 
-        isDayMode = !isDayMode; 
-        renderTheme(); 
-    };
+    // --- 按钮逻辑 ---
+    document.getElementById('start-btn').onclick = () => { if(!isRunning){ isRunning=true; timerInterval=setInterval(()=>{totalSeconds++; todaySeconds++; updateUI(false);}, 1000); }};
+    document.getElementById('pause-btn').onclick = () => { isRunning=false; clearInterval(timerInterval); syncToCloud(); };
+    document.getElementById('reset-btn').onclick = () => { if(confirm("Reset?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
+    document.getElementById('edit-total').onclick = () => { let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){ totalSeconds=v*3600; updateUI(); }};
+    document.getElementById('edit-today').onclick = () => { let v=prompt("Today Hours:", (todaySeconds/3600).toFixed(2)); if(v){ todaySeconds=v*3600; updateUI(); }};
+    document.getElementById('celestial-body').onclick = () => { isDayMode = !isDayMode; renderTheme(); };
 
     function renderTheme() {
         localStorage.setItem('px_mode', isDayMode ? 'day' : 'night');
@@ -255,13 +204,8 @@
     }
 
     function toggleFlip() {
-        if (isFlipping) return;
-        isFlipping = true;
         document.getElementById('card-root').classList.toggle('is-flipped');
-        setTimeout(() => {
-            if(document.getElementById('card-root').classList.contains('is-flipped')) initHeatmap();
-            isFlipping = false; 
-        }, 650);
+        if(document.getElementById('card-root').classList.contains('is-flipped')) initHeatmap();
     }
 
     function showTip(text) {
@@ -275,29 +219,21 @@
     function hideTip() {
         const content = document.getElementById('quote-content');
         content.style.color = 'var(--text-secondary)';
-        content.innerText = originalQuote || "Focusing...";
+        content.innerText = originalQuote;
     }
 
     function initHeatmap() {
-        const heatmap = document.getElementById('heatmap'); 
-        heatmap.innerHTML = '';
-        const now = new Date();
+        const h = document.getElementById('heatmap'); h.innerHTML = '';
         for (let i = 99; i >= 0; i--) {
-            const date = new Date(); 
-            date.setDate(now.getDate() - i);
-            const dateStr = date.toLocaleDateString();
-            const hours = (historyData[dateStr] || 0) / 3600;
-            const cell = document.createElement('div');
-            cell.className = 'heat-cell';
-            if (hours > 0) {
-                let op = Math.min(0.2 + (hours / 5), 1);
-                cell.style.background = isDayMode ? `rgba(34, 139, 34, ${op})` : `rgba(51, 255, 51, ${op})`;
-            }
-            heatmap.appendChild(cell);
+            const d = new Date(); d.setDate(d.getDate() - i);
+            const hrs = (historyData[d.toLocaleDateString()] || 0) / 3600;
+            const cell = document.createElement('div'); cell.className = 'heat-cell';
+            if (hrs > 0) cell.style.background = `rgba(${isDayMode?'34,139,34':'51,255,51'}, ${Math.min(0.2+hrs/5, 1)})`;
+            h.appendChild(cell);
         }
     }
 
-    // --- 烟花动画 ---
+    // --- 烟花 ---
     const canvas = document.getElementById('fireworks-canvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
@@ -307,11 +243,10 @@
     class Particle {
         constructor(x, y, color) {
             this.x = x; this.y = y; this.color = color;
-            this.vx = (Math.random() - 0.5) * 12; this.vy = (Math.random() - 0.5) * 12;
-            this.alpha = 1;
+            this.vx = (Math.random()-0.5)*12; this.vy = (Math.random()-0.5)*12; this.alpha = 1;
         }
         update() { this.x += this.vx; this.y += this.vy; this.vy += 0.2; this.alpha -= 0.015; }
-        draw() { ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.fillRect(Math.floor(this.x), Math.floor(this.y), 4, 4); }
+        draw() { ctx.globalAlpha = this.alpha; ctx.fillStyle = this.color; ctx.fillRect(this.x, this.y, 4, 4); }
     }
 
     function launchCelebration() {
@@ -327,38 +262,23 @@
     }
     animate();
 
-    // --- 初始化启动 ---
+    // --- 初始化 ---
     (async function init() {
         renderTheme();
-        // 1. 先读本地数据快速显示
-        totalSeconds = parseFloat(localStorage.getItem('px_total')) || 0;
-        todaySeconds = parseFloat(localStorage.getItem('px_today')) || 0;
-        historyData = JSON.parse(localStorage.getItem('px_history')) || {};
-        
-        // 跨天检查
-        if (localStorage.getItem('px_last_date') !== new Date().toLocaleDateString()) {
-            todaySeconds = 0;
-            localStorage.setItem('px_last_date', new Date().toLocaleDateString());
+        if (localStorage.getItem('px_date') !== new Date().toLocaleDateString()) {
+            todaySeconds = 0; localStorage.setItem('px_date', new Date().toLocaleDateString());
         }
-
-        updateUI(false);
-        
-        // 2. 再从云端同步最新
         await loadFromCloud();
+        updateUI(false);
     })();
 
-    // 随机名言
     setInterval(() => {
-        const content = document.getElementById('quote-content');
-        if (content.style.color !== 'var(--text-primary)') {
-            content.style.opacity = 0;
-            setTimeout(() => {
-                content.innerText = baseQuotes[Math.floor(Math.random() * baseQuotes.length)];
-                content.style.opacity = 1;
-            }, 500);
+        const c = document.getElementById('quote-content');
+        if (c.style.color !== 'var(--text-primary)') {
+            c.style.opacity = 0;
+            setTimeout(() => { c.innerText = baseQuotes[Math.floor(Math.random()*baseQuotes.length)]; c.style.opacity = 1; }, 500);
         }
-    }, 15000);
+    }, 10000);
 </script>
-
 </body>
 </html>
