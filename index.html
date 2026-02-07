@@ -292,7 +292,7 @@
     // 页面回到前台时检查日期
     document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDateRollover(); });
 
-    (async () => { renderTheme(); await loadFromCloud(); updateQuote(true); setInterval(() => updateQuote(true), 60000); })();
+    (async () => { renderTheme(); await loadFromCloud(); updateQuote(true); setInterval(() => updateQuote(true), 1800000); })();
 
     const canvas = document.getElementById('fireworks-canvas'), ctx = canvas.getContext('2d');
     let particles = [];
