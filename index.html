@@ -100,13 +100,21 @@
 
     let totalSeconds = 0, todaySeconds = 0, historyData = {}, isDayMode = localStorage.getItem('px_mode') !== 'night', isRunning = false, timerInterval;
     let focusKeyword = localStorage.getItem('focus_keyword') || "study with me";
-    let lastQuoteText = "", isFlipping = false;
+    let lastQuoteText = "", isFlipping = false, lastSavedDate = "";
     
-    let startTime = null;
-    let baseTodaySeconds = 0;
-    let baseTotalSeconds = 0;
+    let startTime = null, baseTodaySeconds = 0, baseTotalSeconds = 0;
 
     const getTodayKey = () => new Date().toISOString().split('T')[0];
+
+    // --- 核心更新：日期自动清零检测 ---
+    function checkDateRollover() {
+        const today = getTodayKey();
+        if (lastSavedDate && lastSavedDate !== today) {
+            todaySeconds = 0;
+            lastSavedDate = today;
+            updateUI(true);
+        }
+    }
 
     async function getLiveLearnersCount() {
         try {
@@ -178,7 +186,11 @@
         const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
         document.getElementById('year-stats').innerText = `${dayOfYear}/365 DAYS (${(dayOfYear/3.65).toFixed(2)}%)`;
         document.getElementById('year-bar').style.width = (dayOfYear/3.65) + '%';
-        historyData[getTodayKey()] = todaySeconds;
+        
+        const today = getTodayKey();
+        historyData[today] = todaySeconds;
+        lastSavedDate = today; 
+
         if (shouldSync) syncToCloud();
     }
 
@@ -192,10 +204,26 @@
         el.addEventListener('click', (e) => { if(window.innerWidth > 932) fn(); });
         el.addEventListener('dblclick', (e) => { if(window.innerWidth <= 932) fn(); });
     };
-    setupEdit('box-total', () => { let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); if(v){totalSeconds=parseFloat(v)*3600; updateUI();} });
-    setupEdit('box-today', () => { let v=prompt("Today Hours:", (todaySeconds/3600).toFixed(2)); if(v){todaySeconds=parseFloat(v)*3600; updateUI();} });
+
+    // --- 核心更新：编辑今日时间联动总时间 ---
+    setupEdit('box-total', () => { 
+        let v=prompt("Total Hours:", (totalSeconds/3600).toFixed(2)); 
+        if(v){ totalSeconds=parseFloat(v)*3600; updateUI(); } 
+    });
+
+    setupEdit('box-today', () => { 
+        let v=prompt("Today Hours:", (todaySeconds/3600).toFixed(2)); 
+        if(v){ 
+            let newTodaySec = parseFloat(v)*3600;
+            let diff = newTodaySec - todaySeconds; // 计算改动了多少秒
+            todaySeconds = newTodaySec;
+            totalSeconds += diff; // 将同样的增减应用到总时间
+            updateUI(); 
+        } 
+    });
 
     document.getElementById('start-btn').onclick = () => { 
+        checkDateRollover(); // 开始前先检查日期
         if(!isRunning){ 
             isRunning = true; 
             startTime = Date.now();
@@ -214,30 +242,31 @@
         if(isRunning){
             isRunning = false; 
             clearInterval(timerInterval);
-            
-            // 物理结算
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             todaySeconds = baseTodaySeconds + elapsed;
             totalSeconds = baseTotalSeconds + elapsed;
 
-            // 烟花分级：基于 Today's Record (今日累计时间)
-            // 每 15 分钟 (900秒) 一个等级
-            let level = Math.floor(todaySeconds / 900);
-            if (level > 4) level = 4; // 最高4级
-
+            let level = Math.floor(todaySeconds / 900); // 15min/level
+            if (level > 4) level = 4;
             if (level > 0) launchCelebration(window.innerWidth/2, window.innerHeight/2, level);
-            
-            syncToCloud(); 
+            updateUI(true); 
         }
     };
 
     document.getElementById('reset-btn').onclick = () => { if(confirm("Reset?")){ totalSeconds=0; todaySeconds=0; updateUI(); }};
     document.getElementById('celestial-body').onclick = () => { isDayMode=!isDayMode; renderTheme(); };
 
-    async function syncToCloud() { await _supabase.from('records').upsert({ id: 1, data: { totalSeconds, todaySeconds, historyData }}); }
+    async function syncToCloud() { await _supabase.from('records').upsert({ id: 1, data: { totalSeconds, todaySeconds, historyData, lastSavedDate }}); }
     async function loadFromCloud() { 
         const { data } = await _supabase.from('records').select('data').eq('id', 1).single();
-        if (data?.data) { totalSeconds = data.data.totalSeconds || 0; todaySeconds = data.data.todaySeconds || 0; historyData = data.data.historyData || {}; updateUI(false); } 
+        if (data?.data) { 
+            totalSeconds = data.data.totalSeconds || 0; 
+            todaySeconds = data.data.todaySeconds || 0; 
+            historyData = data.data.historyData || {}; 
+            lastSavedDate = data.data.lastSavedDate || getTodayKey();
+            checkDateRollover(); // 加载后检查是否跨天
+            updateUI(false); 
+        } 
     }
 
     function renderTheme() {
@@ -259,6 +288,9 @@
 
     const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#FFD700"/><rect x="3" y="2" width="10" height="12" fill="#FFD700"/><rect x="2" y="3" width="12" height="10" fill="#FFD700"/><rect x="1" y="5" width="14" height="6" fill="#FFD700"/></svg>`;
     const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect x="5" y="1" width="6" height="14" fill="#E0E0E0"/><rect x="3" y="2" width="10" height="12" fill="#E0E0E0"/><rect x="2" y="3" width="12" height="10" fill="#E0E0E0"/><rect x="1" y="5" width="14" height="6" fill="#E0E0E0"/><circle cx="5" cy="6" r="1.5" fill="#BDBDBD"/><circle cx="11" cy="5" r="1.2" fill="#BDBDBD"/><circle cx="8" cy="11" r="1.8" fill="#BDBDBD"/></svg>`;
+
+    // 页面回到前台时检查日期
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) checkDateRollover(); });
 
     (async () => { renderTheme(); await loadFromCloud(); updateQuote(true); setInterval(() => updateQuote(true), 60000); })();
 
@@ -283,10 +315,10 @@
         const colors = isDayMode ? ['#228b22', '#ff4500', '#ffd700', '#1e90ff'] : ['#33ff33', '#ffffff', '#ffeb3b', '#ff4081']; 
         let count, speed, waves, scatter;
         switch(level) {
-            case 1: count=50; speed=8; waves=1; scatter=80; break;   // 15min
-            case 2: count=120; speed=14; waves=2; scatter=150; break; // 30min
-            case 3: count=180; speed=20; waves=3; scatter=250; break; // 45min
-            case 4: count=300; speed=28; waves=5; scatter=500; break; // 60min+
+            case 1: count=50; speed=8; waves=1; scatter=80; break;
+            case 2: count=120; speed=14; waves=2; scatter=150; break;
+            case 3: count=180; speed=20; waves=3; scatter=250; break;
+            case 4: count=300; speed=28; waves=5; scatter=500; break;
         }
         for(let j=0; j<waves; j++) {
             setTimeout(() => {
